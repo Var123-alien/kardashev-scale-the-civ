@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Journey to the Stars | Kardashev Explorer</title>
+    <!-- 2026 Futuristic Stack -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;700&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+   
+    <style>
+        :root {
+            --accent-blue: #38bdf8;
+            --accent-purple: #a855f7;
+            --glass: rgba(10, 10, 15, 0.75);
+            --border: rgba(255, 255, 255, 0.08);
+        }
+        
+        body {
+            background-color: #020205;
+            /* New Futuristic Space Background */
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.5), rgba(2, 2, 5, 1)),
+                url('https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?auto=format&fit=crop&w=2000&q=80');
+            background-attachment: fixed;
+            background-size: cover;
+            background-blend-mode: overlay;
+            
+            color: #f1f5f9;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow: hidden;
+        }
+
+        /* Subtle glowing vignette */
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.4) 100%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        h1, h2, h3, .font-heading { font-family: 'Space Grotesk', sans-serif; }
+        
+        #particles-js {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            opacity: 0.4;
+        }
+
+        .stage-wrapper {
+            position: absolute;
+            inset: 0;
+            display: none;
+            opacity: 0;
+            transform: translateY(30px) scale(0.98);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 2rem;
+        }
+        .stage-active {
+            display: flex;
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            z-index: 10;
+        }
+        .glass-card {
+            background: var(--glass);
+            backdrop-filter: blur(25px);
+            border: 1px solid var(--border);
+            border-radius: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .progress-indicator {
+            position: fixed;
+            top: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 240px;
+            z-index: 100;
+        }
+        .progress-bg {
+            height: 4px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+            width: 9%;
+            transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .btn-action {
+            background: white;
+            color: black;
+            padding: 0.9rem 2.8rem;
+            border-radius: 99px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            transition: all 0.4s;
+        }
+        .btn-action:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 15px 30px rgba(56, 189, 248, 0.3);
+        }
+        .explorer-card {
+            transition: all 0.4s ease;
+            cursor: pointer;
+        }
+        .explorer-card:hover {
+            border-color: var(--accent-blue);
+            background: rgba(255,255,255,0.03);
+            transform: translateY(-5px);
+        }
+        #infoOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 2, 5, 0.92);
+            backdrop-filter: blur(20px);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        input[type=range] {
+            -webkit-appearance: none;
+            background: rgba(255,255,255,0.1);
+            height: 6px;
+            border-radius: 10px;
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 4px solid var(--accent-blue);
+        }
+        .scroll-custom::-webkit-scrollbar { width: 4px; }
+        .scroll-custom::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div id="particles-js"></div>
+    <!-- Universal Info Modal -->
+    <div id="infoOverlay" onclick="closeInfo()">
+        <div class="glass-card max-w-2xl w-full p-10 m-4 relative border-white/20" onclick="event.stopPropagation()">
+            <button onclick="closeInfo()" class="absolute top-6 right-6 text-gray-500 hover:text-white text-xl">✕</button>
+            <div id="infoContent"></div>
+        </div>
+    </div>
+    <div class="progress-indicator">
+        <div class="progress-bg"><div id="progressFill" class="progress-fill"></div></div>
+    </div>
+    <main class="h-screen w-full relative">
+        <!-- STAGE 1: LANDING -->
+        <section id="stage1" class="stage-wrapper stage-active flex-col items-center justify-center text-center">
+            <div class="max-w-4xl px-4">
+                <h1 class="text-6xl md:text-8xl font-bold mb-6 tracking-tighter leading-none font-heading uppercase">Journey To<br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400">The Stars</span></h1>
+                <p class="text-gray-400 text-lg md:text-xl mb-12 font-light max-w-2xl mx-auto italic">
+                    "The Earth is a very small stage in a vast cosmic arena." — Carl Sagan
+                </p>
+                <div class="flex flex-col items-center gap-6">
+                    <button onclick="nextStage()" class="btn-action">Begin Journey</button>
+                    <p class="text-[10px] text-gray-600 uppercase tracking-[0.5em]">Current Baseline: Type 0.73 (March 2026)</p>
+                </div>
+            </div>
+        </section>
+        <!-- STAGE 2: THE NOW -->
+        <section id="stage2" class="stage-wrapper flex-col items-center">
+            <div class="glass-card p-10 max-w-5xl w-full grid md:grid-cols-2 gap-12 items-center">
+                <div class="space-y-6 text-left">
+                    <h2 class="text-4xl font-bold font-heading">Where We<br/>Stand Today</h2>
+                    <p class="text-gray-400 leading-relaxed text-sm">
+                        As of early 2026, we're cosmic toddlers harnessing ~<span class="text-white font-bold">19.2 Terawatts</span> — fighting over scraps while the universe yawns. Energy demand is rising at 2.2% annually, accelerated by global compute infrastructure.
+                    </p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="p-4 bg-white/5 rounded-2xl">
+                            <span class="text-[9px] text-gray-500 uppercase block mb-1">Total Consumption</span>
+                            <span class="text-lg font-bold">612 Exajoules</span>
+                        </div>
+                        <div class="p-4 bg-white/5 rounded-2xl">
+                            <span class="text-[9px] text-gray-500 uppercase block mb-1">Growth Index</span>
+                            <span class="text-lg font-bold text-green-400">+2.2%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center relative">
+                    <div class="text-[150px] font-black opacity-10 absolute inset-0 flex items-center justify-center">0.73</div>
+                    <div class="relative z-10">
+                        <h3 class="text-8xl font-black text-white">0.73</h3>
+                        <p class="text-xs text-sky-400 uppercase tracking-[0.3em] font-bold">Kardashev Index</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- STAGE 3: THE SCALE -->
+        <section id="stage3" class="stage-wrapper flex-col items-center overflow-y-auto scroll-custom">
+            <div class="max-w-6xl w-full pt-20 pb-20">
+                <h2 class="text-center text-3xl font-bold mb-4 font-heading tracking-tight uppercase">The Hierarchy of Energy</h2>
+                <p class="text-center text-gray-500 text-[10px] uppercase tracking-widest mb-12">Click a level to explore the future</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass-card p-6 explorer-card" onclick="openInfo('type1')">
+                        <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=400&q=80" class="w-full h-32 object-cover rounded-2xl mb-4 opacity-60" alt="Type I">
+                        <h4 class="text-sky-400 font-bold uppercase text-xs mb-2">Type I: Planetary</h4>
+                        <p class="text-xs text-gray-400 leading-relaxed">Harnessing all sunlight hitting the planet (~10¹⁷ W). Mastery over tectonic and weather forces.</p>
+                    </div>
+                    <div class="glass-card p-6 explorer-card" onclick="openInfo('type2')">
+                        <img src="https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=400&q=80" class="w-full h-32 object-cover rounded-2xl mb-4 opacity-60" alt="Type II">
+                        <h4 class="text-indigo-400 font-bold uppercase text-xs mb-2">Type II: Stellar</h4>
+                        <p class="text-xs text-gray-400 leading-relaxed">The <b>Dyson Sphere</b> era. Capturing 100% of a star's output to power stellar-scale computation.</p>
+                    </div>
+                    <div class="glass-card p-6 explorer-card" onclick="openInfo('type3')">
+                        <img src="https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=400&q=80" class="w-full h-32 object-cover rounded-2xl mb-4 opacity-60" alt="Type III">
+                        <h4 class="text-purple-400 font-bold uppercase text-xs mb-2">Type III: Galactic</h4>
+                        <p class="text-xs text-gray-400 leading-relaxed">Harnessing energy from 100 billion stars. Manipulation of black holes and galactic cores.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- STAGE 4: CALCULATOR -->
+        <section id="stage4" class="stage-wrapper flex-col items-center">
+            <div class="glass-card p-10 max-w-5xl w-full grid md:grid-cols-2 gap-12">
+                <div class="space-y-8 text-left">
+                    <h2 class="text-3xl font-bold font-heading">Future Projection</h2>
+                    <div class="space-y-6">
+                        <div>
+                            <div class="flex justify-between text-[10px] text-gray-500 uppercase tracking-widest mb-3">
+                                <span>Annual Growth Rate</span>
+                                <span class="text-white font-bold"><span id="rateLabel">2.0</span>%</span>
+                            </div>
+                            <input type="range" id="growthInput" min="0.5" max="5.0" step="0.1" value="2.0" class="w-full" oninput="runProjection()">
+                        </div>
+                        <div class="p-6 bg-gradient-to-br from-white/5 to-transparent rounded-3xl border border-white/10">
+                            <p class="text-xs text-gray-500 uppercase mb-2">Reach Type I (Planetary) in:</p>
+                            <div class="flex items-baseline gap-2">
+                                <span id="yearsVal" class="text-6xl font-black text-sky-400">---</span>
+                                <span class="text-gray-500 font-bold">Years</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="h-[300px] flex items-center justify-center">
+                    <canvas id="projectionChart"></canvas>
+                </div>
+            </div>
+        </section>
+        <!-- STAGE 5: ACCELERATORS -->
+        <section id="stage5" class="stage-wrapper flex-col items-center">
+            <h2 class="text-2xl font-bold mb-4 font-heading uppercase">Civilization Catalysts</h2>
+            <p class="text-center text-gray-500 text-[10px] uppercase tracking-widest mb-10">Select a boost & explore the tech</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl w-full">
+                <div onclick="addBoost(0.6, this); openInfo('fusion')" class="glass-card p-8 explorer-card text-center group">
+                    <div class="text-4xl mb-4 group-hover:scale-110 transition-transform">☢️</div>
+                    <h3 class="font-bold mb-2 uppercase text-xs tracking-widest">Fusion Era</h3>
+                    <p class="text-[10px] text-gray-500 leading-relaxed">Clean, limitless base power. Click to explore.</p>
+                </div>
+                <div onclick="addBoost(1.0, this); openInfo('ai')" class="glass-card p-8 explorer-card text-center group">
+                    <div class="text-4xl mb-4 group-hover:scale-110 transition-transform">🧠</div>
+                    <h3 class="font-bold mb-2 uppercase text-xs tracking-widest">AGI Growth</h3>
+                    <p class="text-[10px] text-gray-500 leading-relaxed">The compute multiplier. Click to explore.</p>
+                </div>
+                <div onclick="addBoost(1.5, this); openInfo('mining')" class="glass-card p-8 explorer-card text-center group">
+                    <div class="text-4xl mb-4 group-hover:scale-110 transition-transform">🛰️</div>
+                    <h3 class="font-bold mb-2 uppercase text-xs tracking-widest">Space Mining</h3>
+                    <p class="text-[10px] text-gray-500 leading-relaxed">Off-world resources. Click to explore.</p>
+                </div>
+            </div>
+        </section>
+        <!-- STAGE 6: THE ARCHITECT -->
+        <section id="stage6" class="stage-wrapper flex-col items-center text-center">
+            <div class="max-w-2xl">
+                <div class="relative inline-block mb-10">
+                    <img src="https://i.ytimg.com/vi/9rbO8x3E2v8/sddefault.jpg" alt="Nikolai Kardashev" class="w-56 h-56 object-cover rounded-[40px] border border-white/20 shadow-2xl">
+                    <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 glass-card px-4 py-2 border-sky-500/30">
+                        <span class="text-[10px] font-bold tracking-[0.2em] text-sky-400 uppercase">Visionary Founder</span>
+                    </div>
+                </div>
+                <h2 class="text-4xl font-bold font-heading mb-4">Nikolai Kardashev</h2>
+                <p class="text-gray-400 font-light italic text-lg leading-relaxed mb-8">
+                    "A civilization's advancement is measured not by its weaponry, but by its capacity to harness the immense energy of the cosmos."
+                </p>
+            </div>
+        </section>
+        <!-- STAGE 7: AI & FUSION -->
+        <section id="stage7" class="stage-wrapper flex-col items-center">
+            <h2 class="text-3xl font-bold font-heading mb-4 text-sky-400 uppercase">AI & Compute Boom</h2>
+            <p class="text-center text-gray-500 text-[10px] uppercase tracking-widest mb-10">Interconnected Power Multipliers</p>
+            <div class="grid md:grid-cols-2 gap-8 max-w-5xl w-full">
+                <div class="glass-card p-8 explorer-card" onclick="openInfo('ai_deep')">
+                    <h3 class="text-xl font-bold mb-4">Autonomous AI</h3>
+                    <p class="text-xs text-gray-400 leading-relaxed">AI Factories are projected to consume 1000 TWh/year by 2030. This demand is forcing a total energy overhaul.</p>
+                </div>
+                <div class="glass-card p-8 explorer-card" onclick="openInfo('fusion_deep')">
+                    <h3 class="text-xl font-bold mb-4">Fusion Milestones</h3>
+                    <p class="text-xs text-gray-400 leading-relaxed">China's EAST and private startups are breaching density barriers. Net gain demos are targeted for 2027.</p>
+                </div>
+            </div>
+        </section>
+        <!-- STAGE 8: QUANTUM & SPACE (EXPONENTIAL FRONTIERS) -->
+        <section id="stage8" class="stage-wrapper flex-col items-center">
+            <h2 class="text-3xl font-bold font-heading mb-4 text-indigo-400 uppercase">Exponential Frontiers</h2>
+            <p class="text-center text-gray-500 text-[10px] uppercase tracking-widest mb-10">SpaceX, Blue Origin & Beyond</p>
+            <div class="grid md:grid-cols-2 gap-8 max-w-5xl w-full">
+                <div class="glass-card p-8 explorer-card border-indigo-500/20" onclick="openInfo('quantum')">
+                    <h4 class="font-bold text-lg mb-3">Quantum Advantage</h4>
+                    <p class="text-xs text-gray-400 leading-relaxed">IBM targets quantum supremacy solves by late 2026. Fault-tolerant compute will redefine material science.</p>
+                </div>
+                <div class="glass-card p-8 explorer-card border-sky-500/20" onclick="openInfo('space_multi')">
+                    <h4 class="font-bold text-lg mb-3">Multiplanetary Hubs</h4>
+                    <p class="text-xs text-gray-400 leading-relaxed">Starship V3 (SpaceX) and Blue Moon (Blue Origin) are competing to build the first industrial lunar bases by 2027.</p>
+                </div>
+            </div>
+        </section>
+        <!-- STAGE 9: GLOBAL DYNAMICS -->
+        <section id="stage9" class="stage-wrapper flex-col items-center">
+            <h2 class="text-3xl font-bold font-heading mb-4 uppercase">Global Dynamics</h2>
+            <p class="text-center text-gray-500 text-[10px] uppercase tracking-widest mb-10">Current Generation Shifts</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl w-full">
+                <div class="glass-card p-8 explorer-card" onclick="openInfo('renewables')">
+                    <h3 class="text-green-400 font-bold uppercase text-xs mb-3">Renewables 2.0</h3>
+                    <p class="text-xs text-gray-400">Solar is overtaking coal globally. Space-based solar beaming is no longer science fiction.</p>
+                </div>
+                <div class="glass-card p-8 explorer-card" onclick="openInfo('fission')">
+                    <h3 class="text-orange-400 font-bold uppercase text-xs mb-3">Nuclear SMRs</h3>
+                    <p class="text-xs text-gray-400">Advanced modular reactors are being built directly into data center clusters for zero-carbon compute.</p>
+                </div>
+            </div>
+        </section>
+        <!-- STAGE 10: TRAJECTORY -->
+        <section id="stage10" class="stage-wrapper flex-col items-center justify-center text-center">
+            <div class="max-w-3xl px-6">
+                <h2 class="text-4xl font-bold font-heading mb-8 uppercase">The Trajectory</h2>
+                <p class="text-xl text-gray-300 leading-relaxed italic mb-8">
+                    "AI needs massive power; Fusion and space solar provide it. Quantum accelerates their design."
+                </p>
+                <p class="text-sm text-gray-500 leading-relaxed">
+                    We currently require 10,000× our present power for Type I status. However, the synergy of these fields is creating an exponential climb toward the stars.
+                </p>
+            </div>
+        </section>
+        <!-- STAGE 11: FINAL -->
+        <section id="stage11" class="stage-wrapper flex-col items-center justify-center text-center">
+            <div class="glass-card p-16 max-w-2xl border-indigo-500/20">
+                <h2 class="text-6xl font-black mb-6 font-heading tracking-tighter uppercase">To The Stars</h2>
+                <div class="space-y-6 mb-12">
+                    <p class="text-gray-400 font-light uppercase tracking-widest text-xs">Based on your projections... (or Great Filter speedrun?)</p>
+                    <p class="text-2xl font-bold">Humanity will achieve Type I status in the year:</p>
+                    <h3 id="destinyYear" class="text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-500 italic">2354</h3>
+                </div>
+                <button onclick="location.reload()" class="btn-action">Reset Simulation</button>
+            </div>
+        </section>
+    </main>
+    <footer class="fixed bottom-10 left-0 w-full flex justify-center gap-10 z-[100]">
+        <button id="btnBack" onclick="prevStage()" class="text-[10px] font-bold tracking-[0.3em] uppercase text-gray-500 hover:text-white transition-opacity opacity-0 pointer-events-none">Back</button>
+        <button id="btnNext" onclick="nextStage()" class="btn-action">Next Stage</button>
+    </footer>
+    <script>
+        let currentStep = 1;
+        const totalSteps = 11;
+        const BASELINE_WATTS = 1.92e13;
+        let boostValue = 0;
+        let chart = null;
+        const infoData = {
+            type1: { title: "Type I: Planetary Civilization", desc: "Harnesses all energy available on its home planet (~10¹⁷ W). This includes deep geothermal, total solar harvest, and mastered weather control," },
+            type2: { title: "Type II: Stellar Civilization", desc: "Captures the total energy output of its star (~10²⁶ W). This involves Dyson Swarms or Star-Lifting technology." },
+            type3: { title: "Type III: Galactic Civilization", desc: "Controls the energy of an entire galaxy (~10³⁶ W). Access to energy from billions of stars and galactic cores." },
+            fusion: { title: "Fusion Technology", desc: "Mimicking the stars on Earth. Provides base-load power with zero carbon and minimal waste. 2030 marks the era of commercial grid fusion." },
+            ai: { title: "AGI & Compute", desc: "Autonomous general intelligence accelerates material science and engineering, shortening R&D cycles from decades to months." },
+            mining: { title: "Orbital Mining", desc: "Harvesting asteroids like 16 Psyche for rare-earth metals and energy resources. Reduces Earth's environmental burden." },
+            ai_deep: { title: "The AI Energy Paradox", desc: "As AI becomes agentic, it requires massive power. However, it also optimizes the global grid, making energy distribution 40% more efficient." },
+            fusion_deep: { title: "High-Density Plasma", desc: "Recent milestones in tritium handling and high-temperature superconductors have made compact tokamak reactors a reality." },
+            quantum: { title: "Quantum Advantage", desc: "Solving problems classical computers never could—specifically molecular modeling for high-capacity solid-state batteries." },
+            space_multi: {
+                title: "Multiplanetary Hubs (2026-2030)",
+                desc: "<b>SpaceX:</b> With Starship V3, Elon Musk aims for a 2026 orbital refueling demo. Focus has shifted to 'Moonbase Alpha' as a precursor to uncrewed Mars landings in the 2026 window. Plans include a million-satellite AI network.<br/><br/><b>Blue Origin:</b> Jeff Bezos is pivoting resources to the 'Blue Moon' lander (Mk1 pathfinder targets early 2026 at the lunar south pole). Their goal is the 'Blue Ring' orbital tug to move heavy industry off Earth entirely."
+            },
+            renewables: { title: "Space-Based Solar", desc: "Beaming microwave energy from orbital solar arrays allows 24/7 harvest without atmospheric or weather loss." },
+            fission: { title: "Advanced Fission", desc: "Small Modular Reactors (SMRs) provide localized, fail-safe power for the AI 'Factories' of the future." }
+        };
+        function openInfo(id) {
+            const data = infoData[id];
+            document.getElementById('infoContent').innerHTML = `
+                <h2 class="text-3xl font-bold font-heading mb-4 text-sky-400 uppercase">${data.title}</h2>
+                <p class="text-gray-400 leading-relaxed text-sm">${data.desc}</p>
+            `;
+            const overlay = document.getElementById('infoOverlay');
+            overlay.style.display = 'flex';
+            setTimeout(() => overlay.style.opacity = '1', 10);
+        }
+        function closeInfo() {
+            const overlay = document.getElementById('infoOverlay');
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.style.display = 'none', 400);
+        }
+        function updateUI() {
+            document.querySelectorAll('.stage-wrapper').forEach(s => s.classList.remove('stage-active'));
+            document.getElementById(`stage${currentStep}`).classList.add('stage-active');
+            const progress = (currentStep / totalSteps) * 100;
+            document.getElementById('progressFill').style.width = `${progress}%`;
+            const btnBack = document.getElementById('btnBack');
+            const btnNext = document.getElementById('btnNext');
+            btnBack.style.opacity = currentStep === 1 ? '0' : '1';
+            btnBack.style.pointerEvents = currentStep === 1 ? 'none' : 'auto';
+            btnNext.style.display = currentStep === totalSteps ? 'none' : 'block';
+            if (currentStep === 4) initProjection();
+            if (currentStep === 11) calculateFinalYear();
+        }
+        function nextStage() { if (currentStep < totalSteps) { currentStep++; updateUI(); } }
+        function prevStage() { if (currentStep > 1) { currentStep--; updateUI(); } }
+        function calculateYears(rate) {
+            const r = rate / 100;
+            const target = 1e17;  // Adjusted for more realistic Type I midpoint (~1.74e17 W)
+            return Math.round(Math.log10(target / BASELINE_WATTS) / Math.log10(1 + r));
+        }
+        function runProjection() {
+            const rate = parseFloat(document.getElementById('growthInput').value) + boostValue;
+            document.getElementById('rateLabel').innerText = rate.toFixed(1);
+            document.getElementById('yearsVal').innerText = calculateYears(rate);
+            if (chart) updateChartData(rate);
+            calculateFinalYear();  // Update final year live
+        }
+        function calculateFinalYear() {
+            const rate = parseFloat(document.getElementById('growthInput').value) + boostValue;
+            document.getElementById('destinyYear').innerText = 2026 + calculateYears(rate);
+        }
+        function addBoost(val, el) {
+            boostValue = val;
+            document.querySelectorAll('#stage5 .glass-card').forEach(c => c.classList.remove('border-sky-500'));
+            el.classList.add('border-sky-500');
+            runProjection();
+        }
+        function initProjection() {
+            if (chart) return;
+            const ctx = document.getElementById('projectionChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 12}, (_, i) => 2026 + i * 40),
+                    datasets: [{
+                        borderColor: '#38bdf8',
+                        backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                        data: [],
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { display: false, min: 0.7, max: 1.1 },
+                        x: { ticks: { color: '#4b5563' }, grid: { display: false } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+            updateChartData(2.0);  // Initialize with default data
+            runProjection();
+        }
+        function updateChartData(rate) {
+            const r = rate / 100;
+            chart.data.datasets[0].data = Array.from({length: 12}, (_, i) => {
+                const p = BASELINE_WATTS * Math.pow(1 + r, i * 40);
+                return (Math.log10(p) - 6) / 10;
+            });
+            chart.update();
+        }
+
+        // Updated Particles for a better Space feel
+        particlesJS('particles-js', {
+            "particles": {
+                "number": { "value": 160, "density": { "enable": true, "value_area": 800 } },
+                "color": { "value": "#ffffff" },
+                "shape": { "type": "circle" },
+                "opacity": { 
+                    "value": 0.8, 
+                    "random": true, 
+                    "anim": { "enable": true, "speed": 1, "opacity_min": 0.1, "sync": false } 
+                },
+                "size": { 
+                    "value": 1.5, 
+                    "random": true, 
+                    "anim": { "enable": false } 
+                },
+                "line_linked": { "enable": false },
+                "move": { 
+                    "enable": true, 
+                    "speed": 0.2, 
+                    "direction": "none", 
+                    "random": true, 
+                    "straight": false, 
+                    "out_mode": "out", 
+                    "bounce": false 
+                }
+            },
+            "interactivity": {
+                "detect_on": "canvas",
+                "events": {
+                    "onhover": { "enable": true, "mode": "bubble" },
+                    "onclick": { "enable": true, "mode": "push" }
+                },
+                "modes": {
+                    "bubble": { "distance": 100, "size": 2, "duration": 2, "opacity": 1, "speed": 3 },
+                    "push": { "particles_nb": 4 }
+                }
+            },
+            "retina_detect": true
+        });
+    </script>
+</body>
+</html>
